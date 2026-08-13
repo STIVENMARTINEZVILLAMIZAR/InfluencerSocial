@@ -111,6 +111,49 @@ export async function completeLinkedInOAuth(input: { code: string; state: string
   return res.data;
 }
 
+export async function startMetaOAuth(redirectUri: string, provider: 'facebook' | 'instagram') {
+  const fn = httpsCallable<
+    { redirectUri: string; provider: 'facebook' | 'instagram' },
+    { authUrl: string; state: string }
+  >(functions, 'startMetaOAuth');
+  const res = await fn({ redirectUri, provider });
+  return res.data;
+}
+
+export type MetaOAuthResult = {
+  ok: boolean;
+  facebook: { id: string; nombre: string } | null;
+  instagram: { id: string; nombre: string; pagina: string } | null;
+  avisoInstagram?: string;
+};
+
+export async function completeMetaOAuth(input: { code: string; state: string }) {
+  const fn = httpsCallable<typeof input, MetaOAuthResult>(functions, 'completeMetaOAuth');
+  const res = await fn(input);
+  return res.data;
+}
+
+export async function startTikTokOAuth(redirectUri: string) {
+  const fn = httpsCallable<
+    { redirectUri: string },
+    { authUrl: string; state: string }
+  >(functions, 'startTikTokOAuth');
+  const res = await fn({ redirectUri });
+  return res.data;
+}
+
+export type TikTokOAuthResult = {
+  ok: boolean;
+  cuentaNombre: string;
+  openId: string;
+};
+
+export async function completeTikTokOAuth(input: { code: string; state: string }) {
+  const fn = httpsCallable<typeof input, TikTokOAuthResult>(functions, 'completeTikTokOAuth');
+  const res = await fn(input);
+  return res.data;
+}
+
 /** Flujo legacy (redirect vía Cloud Function HTTP) */
 export async function linkedinOAuthStart() {
   const fn = httpsCallable<

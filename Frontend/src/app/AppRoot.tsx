@@ -5,13 +5,17 @@ import { ThemeProvider } from '../context/ThemeContext';
 import App from './App';
 import AuthGate from './AuthGate';
 import { LinkedInOAuthCallback } from './LinkedInOAuthCallback';
+import { MetaOAuthCallback } from './MetaOAuthCallback';
+import { TikTokOAuthCallback } from './TikTokOAuthCallback';
 import { isLinkedInOAuthCallbackPath } from '../lib/linkedinOAuth';
+import { isMetaOAuthCallbackPath } from '../lib/metaOAuth';
+import { isTikTokOAuthCallbackPath } from '../lib/tiktokOAuth';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
 });
 
-/** true = app CampusSocial (sin barra de diseño Figma) */
+/** true = app InfluencerSocial (sin barra de diseño Figma) */
 export const IS_PRODUCTION_APP = import.meta.env.VITE_APP_MODE === 'production';
 
 function AppWithAuth() {
@@ -20,7 +24,7 @@ function AppWithAuth() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#fafafa] text-slate-600">
-        Cargando CampusSocial…
+        Cargando InfluencerSocial…
       </div>
     );
   }
@@ -33,13 +37,27 @@ function AppWithAuth() {
 }
 
 export default function AppRoot() {
-  const oauthCallback = typeof window !== 'undefined' && isLinkedInOAuthCallbackPath();
+  const oauthCallback =
+    typeof window !== 'undefined' &&
+    (isLinkedInOAuthCallbackPath() || isMetaOAuthCallbackPath() || isTikTokOAuthCallbackPath());
+  const isMeta = typeof window !== 'undefined' && isMetaOAuthCallbackPath();
+  const isTikTok = typeof window !== 'undefined' && isTikTokOAuthCallbackPath();
 
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          {oauthCallback ? <LinkedInOAuthCallback /> : <AppWithAuth />}
+          {oauthCallback ? (
+            isMeta ? (
+              <MetaOAuthCallback />
+            ) : isTikTok ? (
+              <TikTokOAuthCallback />
+            ) : (
+              <LinkedInOAuthCallback />
+            )
+          ) : (
+            <AppWithAuth />
+          )}
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

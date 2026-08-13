@@ -4,6 +4,7 @@ import type { Publicacion, RedSocial, ResultadoRed } from '../types';
 import { publishToInstagram } from '../social/instagram';
 import { publishToFacebook } from '../social/facebook';
 import { publishToLinkedIn } from '../social/linkedin';
+import { publishToTikTok } from '../social/tiktok';
 import { resolveAutomationWebhookUrl, resolveAutomationWebhookSecret } from '../integracion/automationWebhook';
 import { buildAutomationWebhookHeaders } from '../integracion/automationWebhookHeaders';
 import type { AutomationPostPayload } from '../integracion/automationTypes';
@@ -79,29 +80,82 @@ export async function publishPostById(postId: string, userId: string): Promise<v
 
   const resultados: Partial<Record<RedSocial, ResultadoRed>> = {};
 
+  const meta = tokens.meta as
+    | {
+        accessToken?: string;
+        pages?: Array<{
+          id: string;
+          name: string;
+          accessToken: string;
+          igId?: string | null;
+          igUsername?: string | null;
+        }>;
+      }
+    | undefined;
+
   const tasks = post.redesDestino.map(async (red) => {
     try {
       switch (red) {
-        case 'instagram':
+        case 'instagram': {
+          const ig = meta?.pages?.find((p) => p.igId);
           resultados.instagram = await publishToInstagram(
-            tokens.instagram ?? {},
+            ig
+              ? { accessToken: ig.accessToken, igAccountId: ig.igId }
+              : {},
             post.contenido,
             post.imagenUrl
           );
           break;
-        case 'facebook':
+        }
+        case 'facebook': {
+          const fbPage = meta?.pages?.find((p) => p.accessToken) ?? meta?.pages?.[0];
           resultados.facebook = await publishToFacebook(
-            tokens.facebook ?? {},
+            fbPage ? { accessToken: fbPage.accessToken, pageId: fbPage.id } : {},
             post.contenido,
             post.imagenUrl
           );
           break;
+        }
         case 'linkedin':
           resultados.linkedin = await publishToLinkedIn(
             tokens.linkedin ?? {},
             post.contenido,
             post.imagenUrl
           );
+          break;
+        case 'tiktok': {
+          const tiktokTokens = (tokens.tiktok ?? {}) as {
+            accessToken?: string;
+            refreshToken?: string;
+            openId?: string;
+            expiresAt?: number;
+            displayName?: string;
+          };
+          const persistTiktok = async (next: unknown) => {
+            await db
+              .collection('tokens_redes')
+              .doc(userId)
+              .set({ tiktok: next }, { merge: true });
+          };
+          resultados.tiktok = await publishToTikTok(
+            tiktokTokens,
+            post.contenido,
+            post.imagenUrl,
+            persistTiktok
+          );
+          break;
+        }
+        case 'freelancer':
+          resultados.freelancer = {
+            success: false,
+            error: 'Freelancer.com aún no conectado. Próximamente en Canales.',
+          };
+          break;
+        case 'fiverr':
+          resultados.fiverr = {
+            success: false,
+            error: 'Fiverr se publica manualmente (sin API oficial). Usa Canales → Fiverr → Pregenerado.',
+          };
           break;
         default:
           resultados[red] = { success: false, error: `Red ${red} aún no implementada` };

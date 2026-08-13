@@ -5,19 +5,19 @@ import * as logger from 'firebase-functions/logger';
 export const geminiApiKey = defineSecret('GEMINI_API_KEY');
 export const anthropicApiKey = defineSecret('ANTHROPIC_API_KEY');
 
-export const CAMPUS_SYSTEM_PROMPT = `Eres CampusSocial, el agente de marketing digital de Campus Lands.
+export const CAMPUS_SYSTEM_PROMPT = `Eres InfluencerSocial, el agente de marketing digital para creadores, freelancers y marcas.
 Generas contenido para redes sociales (Instagram, Facebook, LinkedIn, TikTok, YouTube).
 Responde en español, tono profesional y cercano. Incluye hashtags relevantes cuando aplique.
-Marca: Campus Lands — educación, innovación, comunidad universitaria.
+Marca: InfluencerSocial — publicaciones profesionales en LinkedIn, Facebook, Instagram, TikTok, Freelancer y Fiverr.
 Enfócate en ideas que mantengan las redes activas y llamen la atención del público objetivo.`;
 
 const CLAUDE_MODEL = 'claude-3-5-haiku-20241022';
 
-/** Modelos en orden (2.5 solo si la API key no está bloqueada). */
+/** Modelos en orden (los 2.x están bloqueados para claves nuevas; se usan los 3.x vía Interactions API). */
 function geminiModelsToTry(): string[] {
   const raw = process.env.GEMINI_MODEL?.trim() ?? '';
   const custom = /^[a-z0-9][a-z0-9.-]*$/i.test(raw) ? raw : '';
-  const defaults = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite'];
+  const defaults = ['gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-3.1-flash-lite'];
   return custom ? [custom, ...defaults.filter((m) => m !== custom)] : defaults;
 }
 
@@ -48,7 +48,7 @@ function parseGeminiHttpError(status: number, body: string): Error {
   }
   if (status === 429 || lower.includes('quota')) {
     return new Error(
-      `Cuota de Gemini agotada (429). Espera unos minutos, usa GEMINI_MODEL=gemini-2.0-flash-lite en Backend/.secret.local, o activa facturación en Google AI Studio.`
+      `Cuota de Gemini agotada (429). Espera unos minutos, usa GEMINI_MODEL=gemini-3.1-flash-lite en Backend/.secret.local, o activa facturación en Google AI Studio.`
     );
   }
   if (status === 401 || lower.includes('api key not valid')) {
@@ -56,7 +56,7 @@ function parseGeminiHttpError(status: number, body: string): Error {
   }
   if (status === 404) {
     return new Error(
-      `Modelo Gemini no disponible (404). Prueba GEMINI_MODEL=gemini-2.0-flash en Backend/.secret.local`
+      `Modelo Gemini no disponible (404). Prueba GEMINI_MODEL=gemini-3.5-flash en Backend/.secret.local`
     );
   }
   if (status === 503 || lower.includes('high demand') || lower.includes('overloaded')) {
@@ -206,19 +206,25 @@ async function callAnthropic(apiKey: string, userPrompt: string): Promise<string
   return block?.text?.trim() ?? '';
 }
 
-/** Llamada REST directa a Gemini (errores JSON claros). */
+/** Llamada REST directa a Gemini vía Interactions API (claves nuevas no pueden usar :generateContent). */
+const GEMINI_INTERACTIONS_URL = 'https://generativelanguage.googleapis.com/v1beta/interactions';
+
 async function callGeminiRest(
   apiKey: string,
   modelName: string,
   userPrompt: string
 ): Promise<string> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const url = `${GEMINI_INTERACTIONS_URL}?key=${encodeURIComponent(apiKey)}`;
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Api-Revision': '2026-05-20',
+    },
     body: JSON.stringify({
-      systemInstruction: { parts: [{ text: CAMPUS_SYSTEM_PROMPT }] },
-      contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+      model: modelName,
+      system_instruction: CAMPUS_SYSTEM_PROMPT,
+      input: userPrompt,
     }),
   });
 
@@ -229,9 +235,13 @@ async function callGeminiRest(
   }
 
   const data = JSON.parse(body) as {
-    candidates?: { content?: { parts?: { text?: string }[] } }[];
+    status?: string;
+    steps?: { type?: string; content?: { type?: string; text?: string }[] }[];
+    error?: { message?: string };
   };
-  const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
+  const modelStep = data.steps?.find((s) => s.type === 'model_output');
+  const text = modelStep?.content?.map((p) => p.text ?? '').join('') ?? '';
+  if (!text.trim()) throw new Error('Gemini respondió sin texto');
   return text.trim();
 }
 
@@ -271,7 +281,7 @@ async function callGemini(apiKey: string, userPrompt: string): Promise<string> {
   }
   if (saw404) {
     throw new Error(
-      'Ningún modelo Gemini disponible. En Backend/.secret.local usa GEMINI_MODEL=gemini-2.5-flash y reinicia npm run dev'
+      'Ningún modelo Gemini disponible. En Backend/.secret.local usa GEMINI_MODEL=gemini-3.5-flash y reinicia npm run dev'
     );
   }
   throw parseGeminiError(lastErr ?? new Error('Sin respuesta de Gemini'));

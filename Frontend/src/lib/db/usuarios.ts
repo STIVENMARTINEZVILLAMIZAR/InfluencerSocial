@@ -83,7 +83,7 @@ export async function inicializarCuentaUsuario(authUser: User): Promise<Usuario>
     await addDoc(collection(db, 'actividad'), {
       usuarioId: uid,
       tipo: 'sistema',
-      mensaje: 'Cuenta lista en CampusSocial. ¡Bienvenido!',
+      mensaje: 'Cuenta lista en InfluencerSocial. ¡Bienvenido!',
       red: 'linkedin',
       creadoEn: serverTimestamp(),
     });

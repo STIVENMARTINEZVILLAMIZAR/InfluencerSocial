@@ -3,7 +3,7 @@ export function ConfigErrorScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
       <div className="max-w-lg rounded-2xl border bg-white p-8 shadow-sm">
-        <h1 className="text-xl font-bold text-slate-900 mb-2">CampusSocial</h1>
+        <h1 className="text-xl font-bold text-slate-900 mb-2">InfluencerSocial</h1>
         <p className="text-sm text-slate-600 mb-4">
           Falta la configuración de Firebase en este despliegue. La app no puede iniciar sesión ni cargar datos.
         </p>

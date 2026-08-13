@@ -43,7 +43,7 @@ type LinkedInUserInfo = {
 
 function redirectHtml(target: string, message: string): string {
   const safeTarget = target.replace(/"/g, '%22');
-  return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"/><title>CampusSocial</title></head>
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"/><title>InfluencerSocial</title></head>
 <body><p>${message}</p><script>window.location.replace("${safeTarget}");</script>
 <noscript><a href="${safeTarget}">Continuar</a></noscript></body></html>`;
 }
@@ -98,7 +98,7 @@ export const linkedinOAuthCallback = onRequest(
       res
         .status(200)
         .set('Content-Type', 'text/html; charset=utf-8')
-        .send(redirectHtml(`${frontend}/?${q.toString()}`, 'Redirigiendo a CampusSocial…'));
+        .send(redirectHtml(`${frontend}/?${q.toString()}`, 'Redirigiendo a InfluencerSocial…'));
     };
 
     const errorParam = typeof req.query.error === 'string' ? req.query.error : null;

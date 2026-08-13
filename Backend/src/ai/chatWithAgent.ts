@@ -7,7 +7,7 @@ import { httpsErrorFrom } from './httpsErrorFrom';
 import type { ChatMessage } from '../types';
 
 const CHAT_INSTRUCTIONS = `
-Responde en español como CampusSocial (marketing Campus Lands).
+Responde en español como InfluencerSocial, tu asistente para crear y programar publicaciones en redes sociales.
 FORMATO OBLIGATORIO — TEXTO PLANO (sin markdown):
 - NO uses asteriscos (*), dobles asteriscos (**), almohadillas (#), guiones bajos (_) ni backticks.
 - Títulos de sección en una línea normal terminada en dos puntos, ejemplo: Ideas para Instagram:

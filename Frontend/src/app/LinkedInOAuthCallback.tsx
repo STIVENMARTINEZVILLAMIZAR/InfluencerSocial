@@ -42,7 +42,7 @@ export function LinkedInOAuthCallback() {
       if (!hasAnyQuery) {
         setMessage(
           'Esta página solo sirve cuando LinkedIn te redirige tras autorizar. No abras /oauth/linkedin a mano. ' +
-            'En CampusSocial inicia sesión → Canales → Conectar LinkedIn → Iniciar sesión con LinkedIn.'
+            'En InfluencerSocial inicia sesión → Canales → Conectar LinkedIn → Iniciar sesión con LinkedIn.'
         );
       } else if (state && !code) {
         setMessage(
@@ -60,7 +60,7 @@ export function LinkedInOAuthCallback() {
     if (!user) {
       setStatus('error');
       setMessage(
-        'Debes iniciar sesión en CampusSocial con la misma cuenta antes de autorizar LinkedIn. Cierra esta pestaña, inicia sesión y pulsa «Conectar LinkedIn» otra vez.'
+        'Debes iniciar sesión en InfluencerSocial con la misma cuenta antes de autorizar LinkedIn. Cierra esta pestaña, inicia sesión y pulsa «Conectar LinkedIn» otra vez.'
       );
       return;
     }
@@ -114,7 +114,7 @@ export function LinkedInOAuthCallback() {
           <CheckCircle2 className="w-10 h-10 mx-auto text-emerald-600" />
         ) : null}
         {status === 'error' ? <AlertCircle className="w-10 h-10 mx-auto text-destructive" /> : null}
-        <h1 className="text-lg font-semibold">LinkedIn — CampusSocial</h1>
+        <h1 className="text-lg font-semibold">LinkedIn — InfluencerSocial</h1>
         <p className="text-sm text-muted-foreground">{message}</p>
         {status === 'error' ? (
           <div className="flex flex-col gap-2 mt-2">

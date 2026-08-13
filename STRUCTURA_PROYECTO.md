@@ -1,6 +1,6 @@
-# CampusSocial — Estructura del proyecto
+# InfluencerSocial — Estructura del proyecto
 
-**Producto:** CampusSocial (automatización de publicaciones, LinkedIn primero).  
+**Producto:** InfluencerSocial (automatización de publicaciones, LinkedIn primero).  
 **Asistente IA:** pantalla y código en `Backend/src/ai/`, no un repo ni carpeta raíz aparte.
 
 ---
@@ -8,7 +8,7 @@
 ## Árbol actual
 
 ```
-CampusSocial/
+InfluencerSocial/
 ├── Fontend/              ★ App React (todas las pantallas)
 │   └── src/lib/          ★ Firebase + repos Firestore
 ├── Backend/              ★ Cloud Functions
@@ -34,7 +34,7 @@ CampusSocial/
 
 ## `Backend/`
 
-Cloud Functions de **todo** CampusSocial:
+Cloud Functions de **todo** InfluencerSocial:
 
 | Carpeta | Funciones |
 |---------|-----------|

@@ -15,7 +15,9 @@
     "VITE_USE_FIREBASE_EMULATOR": "false",
     "VITE_USE_FUNCTIONS_EMULATOR": "false",
     "VITE_USE_AUTH_EMULATOR": "false",
-    "VITE_LINKEDIN_OAUTH_REDIRECT_URI": "https://campus-social-indol.vercel.app/oauth/linkedin"
+    "VITE_LINKEDIN_OAUTH_REDIRECT_URI": "https://campus-social-indol.vercel.app/oauth/linkedin",
+    "VITE_META_OAUTH_REDIRECT_URI": "https://campus-social-indol.vercel.app/oauth/meta",
+    "VITE_TIKTOK_OAUTH_REDIRECT_URI": "https://campus-social-indol.vercel.app/oauth/tiktok"
   },
   "rewrites": [
     {

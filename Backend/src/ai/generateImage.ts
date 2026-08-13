@@ -154,7 +154,7 @@ export async function generateGeminiImage(
   imagePrompt: string
 ): Promise<GeneratedImage | null> {
   const prompt = [
-    'Campus Lands education technology bootcamp, young students learning programming',
+    'professional social media marketing campaign, vibrant colors, social network icons',
     imagePrompt,
     'professional social media photo, bright modern, inspiring',
   ].join(', ');

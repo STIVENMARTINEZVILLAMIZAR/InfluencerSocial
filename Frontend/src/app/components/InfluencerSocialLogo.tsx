@@ -22,7 +22,7 @@ const textSizeMap = {
   lg: 'text-xl font-bold bg-gradient-to-r from-[#0B1F4B] to-[#2BBDE8] dark:from-[#60a5fa] dark:to-[#22d3ee] bg-clip-text text-transparent',
 };
 
-export function CampusSocialLogo({
+export function InfluencerSocialLogo({
   size = 'md',
   showText = true,
   className = '',
@@ -32,7 +32,7 @@ export function CampusSocialLogo({
     <div className={`flex items-center gap-2 shrink-0 ${className}`}>
       <img
         src={LOGO_SRC}
-        alt="CampusSocial"
+        alt="InfluencerSocial"
         className={`${sizeMap[size]} object-contain`}
         onError={(e) => {
           const img = e.currentTarget;
@@ -40,7 +40,7 @@ export function CampusSocialLogo({
         }}
       />
       {showText && (
-        <span className={`${textSizeMap[size]} ${textClassName}`.trim()}>CampusSocial</span>
+        <span className={`${textSizeMap[size]} ${textClassName}`.trim()}>InfluencerSocial</span>
       )}
     </div>
   );

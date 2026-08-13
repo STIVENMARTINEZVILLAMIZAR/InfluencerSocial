@@ -16,7 +16,7 @@ export class RootErrorBoundary extends React.Component<Props, State> {
       return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
           <div className="max-w-lg rounded-2xl border bg-white p-8 shadow-sm">
-            <h1 className="text-xl font-bold text-slate-900 mb-2">Error al cargar CampusSocial</h1>
+            <h1 className="text-xl font-bold text-slate-900 mb-2">Error al cargar InfluencerSocial</h1>
             <p className="text-sm text-slate-600 mb-3">{this.state.error.message}</p>
             <p className="text-xs text-slate-500">
               Si acabas de desplegar, haz <strong>Redeploy</strong> en Vercel sin caché y revisa la consola del

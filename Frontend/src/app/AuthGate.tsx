@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { CampusSocialLogo } from './components/CampusSocialLogo';
+import { InfluencerSocialLogo } from './components/InfluencerSocialLogo';
 import { useAuth } from '../context/AuthContext';
 import { mensajeErrorAuth } from '../lib/authErrors';
 import { hasRealFirebaseWebConfig, useAuthEmulator } from '../lib/firebase';
@@ -93,7 +93,7 @@ export default function AuthGate() {
           Inicio
         </button>
         <div className="mb-8 mt-6 flex justify-center">
-          <CampusSocialLogo size="lg" textClassName="!text-foreground !bg-none" />
+          <InfluencerSocialLogo size="lg" textClassName="!text-foreground !bg-none" />
         </div>
         <p className="text-sm font-medium text-center text-muted-foreground mb-8">Automatización de redes con IA y Make</p>
         <form onSubmit={submit} className="space-y-4">

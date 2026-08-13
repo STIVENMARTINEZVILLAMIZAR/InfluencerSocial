@@ -1,4 +1,4 @@
-# CampusSocial — Backend (Cloud Functions)
+# InfluencerSocial — Backend (Cloud Functions)
 
 Este backend **no es un servidor** tipo Flask que queda escuchando con `npm run build`.
 
@@ -58,6 +58,21 @@ LINKEDIN_CLIENT_SECRET=...
 ```
 
 Guía completa: [docs/LINKEDIN_OAUTH.md](../docs/LINKEDIN_OAUTH.md). Redirect local: `http://localhost:5173/oauth/linkedin`.
+
+### Meta OAuth (Facebook + Instagram sin Postiz)
+
+Una sola app en [Meta for Developers](https://developers.facebook.com/apps) conecta ambos canales.
+
+```env
+META_CLIENT_ID=...      # App ID
+META_CLIENT_SECRET=...  # App Secret
+```
+
+Redirect local: `http://localhost:5173/oauth/meta` (regístrala en Configuración → Avanzado → URI de redireccionamiento de OAuth válidos). Permisos pedidos: `pages_show_list`, `pages_manage_posts`, `pages_read_engagement`, `business_management`, `instagram_basic`, `instagram_content_publish` (puedes limitarlos con `META_OAUTH_SCOPES`).
+
+- **Facebook:** publica en la primera página del usuario (`/{page-id}/feed` o `/photos`).
+- **Instagram:** publica en la cuenta Instagram Business vinculada a una página (flujo container → `media_publish`). Requiere imagen o video.
+- La app Meta debe estar en modo Live con revisión si vas a publicar para terceros; para tu propia cuenta personal de administrador de la app suele bastar el modo Development.
 
 ## Conectar el Frontend
 

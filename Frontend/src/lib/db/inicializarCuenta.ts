@@ -79,7 +79,7 @@ export async function inicializarCuentaUsuario(user: User): Promise<Usuario> {
   if (actSnap.empty) {
     await registrarActividad(uid, {
       tipo: 'sistema',
-      mensaje: 'Cuenta creada en CampusSocial. ¡Bienvenido!',
+      mensaje: 'Cuenta creada en InfluencerSocial. ¡Bienvenido!',
       red: 'linkedin',
     });
   }

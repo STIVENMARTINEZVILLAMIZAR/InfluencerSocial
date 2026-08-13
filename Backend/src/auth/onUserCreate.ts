@@ -76,7 +76,7 @@ export const onAuthUserCreate = functions
       await db.collection('actividad').add({
         usuarioId: uid,
         tipo: 'sistema',
-        mensaje: 'Cuenta creada en CampusSocial. ¡Bienvenido!',
+        mensaje: 'Cuenta creada en InfluencerSocial. ¡Bienvenido!',
         red: 'linkedin',
         creadoEn: FieldValue.serverTimestamp(),
       });

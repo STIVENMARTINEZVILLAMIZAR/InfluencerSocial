@@ -215,7 +215,7 @@ export function SocialPostPreview({
         </div>
         <div className="min-w-0">
           <div className="text-sm font-semibold text-[#000000e6]">{authorName}</div>
-          <div className="text-xs text-[#00000099]">Educación tecnológica · Campus Lands</div>
+          <div className="text-xs text-[#00000099]">Creatividad e innovación · Influencer</div>
           <div className="text-xs text-[#00000099]">Ahora · 🌐</div>
         </div>
       </div>

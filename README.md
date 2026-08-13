@@ -1,12 +1,12 @@
-# CampusSocial
+# InfluencerSocial
 
-Automatización de publicaciones en redes para **Campus Lands**, con foco en **LinkedIn** (Postiz + **Make**) e **Asistente IA** (Gemini) como un apartado más de la app.
+Automatización de publicaciones en redes sociales con IA, con foco en **LinkedIn** (Postiz + **Make**) e **Asistente IA** (Gemini) como un apartado más de la app.
 
 ## Estructura
 
 | Carpeta | Rol |
 |---------|-----|
-| **`Frontend/`** | App React CampusSocial (UI + Firebase cliente) |
+| **`Frontend/`** | App React InfluencerSocial (UI + Firebase cliente) |
 | **`Backend/`** | Cloud Functions (IA, posts, Make, LinkedIn) |
 | **`docs/`** | Documentación (Firestore, arquitectura, módulo IA) |
 | **`legacy/flask-backend/`** | Flask antiguo (no producción) |
@@ -15,7 +15,7 @@ Automatización de publicaciones en redes para **Campus Lands**, con foco en **L
 
 ## Requisito: Node.js 20+
 
-El sistema puede traer Node 12 por defecto (`/usr/bin/node`). CampusSocial necesita **Node ≥ 20** (Vite 6, Firebase 11).
+El sistema puede traer Node 12 por defecto (`/usr/bin/node`). InfluencerSocial necesita **Node ≥ 20** (Vite 6, Firebase 11).
 
 ```bash
 # Si instalaste nvm (una vez)::
@@ -71,7 +71,7 @@ docker compose up -d
 ```
 
 1. Guía: [docs/N8N_DOCKER.md](docs/N8N_DOCKER.md) · Checklist: [Flujo_Automatizacion/CHECKLIST.md](Flujo_Automatizacion/CHECKLIST.md)
-2. Importar `CampusSocial _ Publicación LinkedIn.json` en http://localhost:5678
+2. Importar `InfluencerSocial _ Publicación LinkedIn.json` en http://localhost:5678
 3. Con ngrok: `ngrok http 5678` → `N8N_WEBHOOK_URL=https://xxx.ngrok-free.dev/webhook/campus-post-form`
 4. App → **Ajustes** → misma URL · **Asistente IA** → **Generar publicación** abre Nueva publicación automáticamente
 

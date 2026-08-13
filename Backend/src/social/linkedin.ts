@@ -76,28 +76,32 @@ async function publishViaUgcPosts(
   contenido: string,
   imagenUrl?: string | null
 ): Promise<ResultadoRed> {
-  const shareMediaCategory = imagenUrl ? 'IMAGE' : 'NONE';
-  const specificContent: Record<string, unknown> = {
-    'com.linkedin.ugc.ShareContent': {
-      shareCommentary: { text: contenido },
-      shareMediaCategory,
-      ...(imagenUrl
-        ? {
-            media: [
-              {
-                status: 'READY',
-                originalUrl: imagenUrl,
-              },
-            ],
-          }
-        : {}),
-    },
+  const shareContent: Record<string, unknown> = {
+    shareCommentary: { text: contenido },
+    shareMediaCategory: imagenUrl ? 'IMAGE' : 'NONE',
   };
+
+  if (imagenUrl) {
+    const { uploadUrl, asset, uploadHeaders } = await registerLinkedInImageUpload(
+      accessToken,
+      author
+    );
+    await uploadLinkedInImage(accessToken, uploadUrl, uploadHeaders, imagenUrl);
+    shareContent.media = [
+      {
+        status: 'READY',
+        media: asset,
+        altText: 'Imagen de la publicación',
+      },
+    ];
+  }
 
   const body = {
     author,
     lifecycleState: 'PUBLISHED',
-    specificContent,
+    specificContent: {
+      'com.linkedin.ugc.ShareContent': shareContent,
+    },
     visibility: {
       'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
     },
@@ -127,6 +131,85 @@ async function publishViaUgcPosts(
   }
 
   return { success: true, postId: postId ?? `li_${Date.now()}` };
+}
+
+interface RegisterUploadResponse {
+  value?: {
+    asset?: string;
+    uploadMechanism?: {
+      'com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest'?: {
+        uploadUrl?: string;
+        headers?: Record<string, string>;
+      };
+    };
+  };
+}
+
+/** Paso a) registra el upload en LinkedIn y devuelve uploadUrl + asset URN. */
+async function registerLinkedInImageUpload(
+  accessToken: string,
+  author: string
+): Promise<{ uploadUrl: string; asset: string; uploadHeaders: Record<string, string> }> {
+  const res = await fetch('https://api.linkedin.com/v2/assets?action=registerUpload', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      'X-Restli-Protocol-Version': '2.0.0',
+    },
+    body: JSON.stringify({
+      registerUploadRequest: {
+        recipes: ['urn:li:digitalmediaRecipe:feedshare-image'],
+        owner: author,
+        serviceRelationships: [
+          { relationshipType: 'OWNER', identifier: 'urn:li:userGeneratedContent' },
+        ],
+      },
+    }),
+  });
+
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(parseLinkedInError(res.status, text));
+  }
+
+  const parsed = JSON.parse(text) as RegisterUploadResponse;
+  const mechanism =
+    parsed.value?.uploadMechanism?.['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest'];
+  const uploadUrl = mechanism?.uploadUrl;
+  const asset = parsed.value?.asset;
+  if (!uploadUrl || !asset) {
+    throw new Error('LinkedIn registerUpload no devolvió uploadUrl/asset');
+  }
+  return { uploadUrl, asset, uploadHeaders: mechanism?.headers ?? {} };
+}
+
+/** Paso b) descarga la imagen desde imagenUrl y la sube a la uploadUrl de LinkedIn. */
+async function uploadLinkedInImage(
+  accessToken: string,
+  uploadUrl: string,
+  uploadHeaders: Record<string, string>,
+  imagenUrl: string
+): Promise<void> {
+  const imgRes = await fetch(imagenUrl);
+  if (!imgRes.ok) {
+    throw new Error(`No se pudo descargar la imagen para LinkedIn (${imgRes.status})`);
+  }
+  const binary = Buffer.from(await imgRes.arrayBuffer());
+
+  const upRes = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/octet-stream',
+      ...uploadHeaders,
+    },
+    body: binary,
+  });
+  const upText = await upRes.text();
+  if (!upRes.ok) {
+    throw new Error(`LinkedIn upload de imagen: ${upRes.status} ${upText.slice(0, 300)}`);
+  }
 }
 
 export async function publishToLinkedIn(

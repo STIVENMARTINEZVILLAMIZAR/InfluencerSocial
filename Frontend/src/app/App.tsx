@@ -3,7 +3,7 @@ import {
   Sparkles, Calendar, FileText, Settings,
   Home, PenSquare, MessageSquare, Share2,
   Search, Bell, ChevronDown, X, Check,
-  Linkedin,
+  Linkedin, Facebook, Instagram, Music2, Briefcase, Store,
   Clock, Trash2, Edit, Send, Plus,
   Zap, Network, BarChart3, CheckCircle2,
   ArrowRight, Play, Eye, Save, Loader2,
@@ -34,7 +34,7 @@ import {
 } from '../lib/db';
 import { guardarConfiguracion } from '../lib/db/configuracion';
 import type { RedSocial, Borrador, Publicacion } from '../lib/db/types';
-import { CampusSocialLogo } from './components/CampusSocialLogo';
+import { InfluencerSocialLogo } from './components/InfluencerSocialLogo';
 import {
   useBorradores,
   useActividad,
@@ -57,7 +57,8 @@ import { toDate, formatRelative, formatDateTime } from '../lib/format';
 import { useFunctionsEmulator } from '../lib/firebase';
 import { consumePostDraftFromAgent, savePostDraftFromAgent } from '../lib/postDraftBridge';
 import { consumeBorradorResume, resumeBorradorAndNavigate } from '../lib/borradorResumeBridge';
-import { RED_PRINCIPAL, REDES_PUBLICACION } from '../lib/redesConfig';
+import { RED_PRINCIPAL, CATALOGO_REDES, redConfig } from '../lib/redesConfig';
+import type { CanalesDoc } from '../lib/db/types';
 
 // ============================================================================
 // DESIGN SYSTEM - COMPONENTES REUTILIZABLES
@@ -398,7 +399,7 @@ const LandingPage: React.FC<{ onNavigate: (screen: string) => void }> = ({ onNav
       >
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CampusSocialLogo size="lg" className="!gap-2" />
+            <InfluencerSocialLogo size="lg" className="!gap-2" />
           </div>
           <div className="flex items-center gap-3">
             <Button variant="liquid" size="md" onClick={() => onNavigate('login')} className="shadow-md shadow-[#06b6d4]/20 font-semibold px-6">
@@ -430,7 +431,7 @@ const LandingPage: React.FC<{ onNavigate: (screen: string) => void }> = ({ onNav
               con Inteligencia Artificial
             </h1>
             <p className="text-lg text-muted-foreground/90 leading-relaxed max-w-xl">
-              CampusSocial automatiza publicaciones para Campus Lands en{' '}
+              InfluencerSocial automatiza publicaciones para tus redes en{' '}
               <strong className="text-foreground">LinkedIn</strong>: genera copy con IA, programa posts y publica de forma oficial vía Postiz y n8n.
             </p>
             <div className="flex flex-wrap items-center gap-4">
@@ -617,14 +618,14 @@ const LandingPage: React.FC<{ onNavigate: (screen: string) => void }> = ({ onNav
         <div className="max-w-7xl mx-auto px-6 py-10">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <CampusSocialLogo size="sm" textClassName="!text-foreground font-bold !bg-none" />
+              <InfluencerSocialLogo size="sm" textClassName="!text-foreground font-bold !bg-none" />
             </div>
             <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-6 text-sm text-muted-foreground font-medium">
               <a href="/privacidad" className="hover:text-[#06b6d4] transition-colors">
                 Política de privacidad
               </a>
               <span className="hidden sm:inline text-[#06b6d4]/30">•</span>
-              <span>© 2026 Campuslands - Educación Tecnológica Colombia</span>
+              <span>© 2026 InfluencerSocial</span>
             </div>
           </div>
         </div>
@@ -745,7 +746,7 @@ const DashboardShell: React.FC<{
               className="fixed top-0 left-0 bottom-0 w-72 bg-card/95 backdrop-blur-md z-50 flex flex-col shadow-2xl border-r border-border"
             >
               <div className="p-4 flex items-center justify-between border-b border-border">
-                 <CampusSocialLogo size="md" />
+                 <InfluencerSocialLogo size="md" />
                  <button onClick={() => setIsMenuOpen(false)} className="p-2 hover:bg-accent rounded-xl text-muted-foreground transition-all cursor-pointer hover:rotate-90 duration-200">
                    <X className="w-5 h-5" />
                  </button>
@@ -805,7 +806,7 @@ const DashboardShell: React.FC<{
                <Menu className="w-6 h-6" />
              </motion.button>
              <div className="hidden sm:block">
-               <CampusSocialLogo size="sm" />
+               <InfluencerSocialLogo size="sm" />
              </div>
           </div>
           
@@ -1000,6 +1001,99 @@ const DashboardShell: React.FC<{
 
 type UploadedMedia = { name: string; type: string; preview?: string; file: File };
 
+// ============================================================================
+// CANALES UNIVERSALES — helpers y selector de redes
+// ============================================================================
+
+function redEstaConectada(red: RedSocial, canales: CanalesDoc | null | undefined): boolean {
+  return Boolean(canales?.[red]?.conectado);
+}
+
+function redIcono(red: RedSocial, size = 'w-4 h-4'): React.ReactNode {
+  switch (red) {
+    case 'linkedin':
+      return <Linkedin className={`${size} text-[#0a66c2]`} />;
+    case 'facebook':
+      return <Facebook className={`${size} text-[#1877f2]`} />;
+    case 'instagram':
+      return <Instagram className={`${size} text-[#e1306c]`} />;
+    case 'tiktok':
+      return <Music2 className={`${size} text-black dark:text-white`} />;
+    case 'freelancer':
+      return <Briefcase className={`${size} text-[#29b2fe]`} />;
+    case 'fiverr':
+      return <Store className={`${size} text-[#1dbf73]`} />;
+    case 'twitter':
+      return <Share2 className={`${size} text-[#1da1f2]`} />;
+    default:
+      return <Share2 className={`${size} text-muted-foreground`} />;
+  }
+}
+
+/** Inicializa la selección con los canales conectados (o LinkedIn por defecto). */
+function redesIniciales(canales: CanalesDoc | null | undefined): RedSocial[] {
+  const conectadas = CATALOGO_REDES.filter(
+    (r) => r.disponible && redEstaConectada(r.id, canales)
+  ).map((r) => r.id);
+  return conectadas.length ? conectadas : [RED_PRINCIPAL];
+}
+
+type RedSelectorProps = {
+  value: RedSocial[];
+  onChange: (next: RedSocial[]) => void;
+  canales?: CanalesDoc | null;
+};
+
+const RedSelector: React.FC<RedSelectorProps> = ({ value, onChange, canales }) => {
+  const toggle = (red: RedSocial) => {
+    onChange(value.includes(red) ? value.filter((r) => r !== red) : [...value, red]);
+  };
+
+  return (
+    <div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {CATALOGO_REDES.map((red) => {
+          const selected = value.includes(red.id);
+          const conectada = redEstaConectada(red.id, canales);
+          const bloqueada = !red.disponible || !conectada;
+          const title = !red.disponible
+            ? `${red.nombre}: ${red.descripcion}`
+            : !conectada
+              ? `Conecta ${red.nombre} en Canales para habilitarlo`
+              : undefined;
+          return (
+            <button
+              key={red.id}
+              type="button"
+              disabled={bloqueada}
+              onClick={() => toggle(red.id)}
+              title={title}
+              className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all duration-200 text-sm
+                ${selected ? 'border-[#06b6d4] bg-[#06b6d4]/10 shadow-sm' : 'border-border/60 bg-white/40 dark:bg-accent/30 hover:border-[#06b6d4]/40'}
+                ${bloqueada ? 'opacity-45 cursor-not-allowed' : 'cursor-pointer'}`}
+            >
+              {redIcono(red.id, 'w-4 h-4')}
+              <span className="flex-1 truncate font-medium">{red.nombre}</span>
+              <span
+                className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
+                  selected ? 'bg-[#06b6d4] border-[#06b6d4]' : 'border-muted-foreground/40'
+                }`}
+              >
+                {selected && <Check className="w-2.5 h-2.5 text-white" />}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
+        <Info className="w-3.5 h-3.5 shrink-0" />
+        Solo se muestran activos los canales conectados. Gestiona conexiones en
+        <span className="font-medium text-foreground">Canales</span>.
+      </p>
+    </div>
+  );
+};
+
 const NewPostScreen: React.FC = () => {
   const { user, profile } = useAuth();
   const { data: config } = useConfiguracion();
@@ -1028,8 +1122,17 @@ const NewPostScreen: React.FC = () => {
   const newPostFileRef = useRef<HTMLInputElement>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [makeWarning, setMakeWarning] = useState('');
+  const [selectedRedes, setSelectedRedes] = useState<RedSocial[]>([]);
+  const redesInitDone = useRef(false);
 
-  const platformsSelected = (): RedSocial[] => REDES_PUBLICACION;
+  useEffect(() => {
+    if (redesInitDone.current || !canales) return;
+    redesInitDone.current = true;
+    setSelectedRedes(redesIniciales(canales));
+  }, [canales]);
+
+  const platformsSelected = (): RedSocial[] =>
+    selectedRedes.length ? selectedRedes : [RED_PRINCIPAL];
 
   const addManualFiles = (files: File[]) => {
     const mapped = files.map((f) => ({
@@ -1121,7 +1224,7 @@ const NewPostScreen: React.FC = () => {
       try {
         const platforms: RedSocial[] = platformsSelected().length
           ? platformsSelected()
-          : ['linkedin'];
+          : [RED_PRINCIPAL];
 
         const gen = await generateContentFn(
           topicText.trim(),
@@ -1178,7 +1281,7 @@ const NewPostScreen: React.FC = () => {
             webhook
           );
         } catch {
-          // n8n opcional; la IA ya generó el texto en CampusSocial
+          // n8n opcional; la IA ya generó el texto en InfluencerSocial
         }
       }
     } catch (e) {
@@ -1259,8 +1362,9 @@ const NewPostScreen: React.FC = () => {
     if (scheduleMode === 'schedule' && (!scheduledDate || !scheduledTime)) return;
     if (scheduleMode === 'now') {
       const webhookNow = getAutomationWebhookUrl(config);
-      if (!webhookNow && !canales?.linkedin?.conectado) {
-        setErrorMsg('Configura la URL de Make en Ajustes o conecta LinkedIn en Canales.');
+      const hayDestinoActivo = platformsSelected().some((r) => redEstaConectada(r, canales));
+      if (!webhookNow && !hayDestinoActivo) {
+        setErrorMsg('Conecta al menos una red en Canales o configura la URL de Make en Ajustes.');
         return;
       }
     }
@@ -1270,11 +1374,21 @@ const NewPostScreen: React.FC = () => {
     try {
       const platforms: RedSocial[] = platformsSelected().length
         ? platformsSelected()
-        : ['linkedin'];
+        : [RED_PRINCIPAL];
       const finalImageUrl = await resolvePostImageUrl();
       if (imagenQuedoSinResolver(imagenUrl || previewImageUrl, finalImageUrl)) {
         setMakeWarning(
           'Firebase Storage no está activo: la publicación irá solo con texto. Activa Storage en Firebase Console (plan Blaze) para incluir imágenes.'
+        );
+      }
+      if (platforms.includes('instagram') && !finalImageUrl) {
+        setMakeWarning(
+          'Instagram requiere una imagen o video: activa «Generar imagen con IA» o sube un archivo, o Instagram no podrá publicar.'
+        );
+      }
+      if (platforms.includes('tiktok') && !finalImageUrl) {
+        setMakeWarning(
+          'TikTok requiere un video (mp4/mov/webm): sube un archivo de video o usa un video con IA, o TikTok no podrá publicar.'
         );
       }
       const postTitle = topic.slice(0, 80) || 'Publicación';
@@ -1311,12 +1425,12 @@ const NewPostScreen: React.FC = () => {
           await actualizarPublicacion(postId, { estado: 'publicado' });
           setToastMsg(
             makeRes.linkedin_status
-              ? `Publicado en LinkedIn vía Make (${makeRes.linkedin_status})`
-              : 'Publicado en LinkedIn vía Make'
+              ? `Publicado vía Make (${makeRes.linkedin_status})`
+              : 'Publicado vía Make'
           );
         } else {
           await publishPostNowFn(postId);
-          setToastMsg('Publicación enviada a LinkedIn');
+          setToastMsg(`Publicación enviada a ${platforms.join(', ')}`);
         }
         await registrarActividad(user.uid, {
           tipo: 'publicado',
@@ -1383,7 +1497,7 @@ const NewPostScreen: React.FC = () => {
     }
   };
 
-  const displayName = profile?.nombre || 'Campus Lands';
+  const displayName = profile?.nombre || 'Influencer';
 
   return (
     <div className="h-full">
@@ -1468,17 +1582,20 @@ const NewPostScreen: React.FC = () => {
                 </select>
               </div>
 
-              {/* LinkedIn badge */}
-              <div className="flex items-center gap-3 bg-gradient-to-r from-[#1e3a8a]/5 to-[#06b6d4]/5 border border-[#06b6d4]/15 p-4 rounded-2xl">
-                <div className="w-10 h-10 bg-[#0a66c2]/10 rounded-xl flex items-center justify-center">
-                  <Linkedin className="w-5 h-5 text-[#0a66c2]" />
+              {/* Publicar en */}
+              <div className="space-y-3 bg-gradient-to-r from-[#1e3a8a]/5 to-[#06b6d4]/5 border border-[#06b6d4]/15 p-4 rounded-2xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[#06b6d4]/10 rounded-xl flex items-center justify-center">
+                    <Share2 className="w-5 h-5 text-[#06b6d4]" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Redes de publicación</p>
+                    <p className="text-xs text-muted-foreground">
+                      Elige dónde publicar esta publicación (puedes elegir varias)
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium">Canal de publicación</p>
-                  <p className="text-xs text-muted-foreground">
-                    Solo LinkedIn — OAuth en Canales; programación en Calendario
-                  </p>
-                </div>
+                <RedSelector value={selectedRedes} onChange={setSelectedRedes} canales={canales} />
               </div>
 
               {/* Image toggle */}
@@ -1775,8 +1892,14 @@ const ManualPostScreen: React.FC = () => {
   const [toastMsg, setToastMsg] = useState('');
   const [repeatMode, setRepeatMode] = useState('none');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [redesDestino, setRedesDestino] = useState<RedSocial[]>([]);
+  const redesInitDone = useRef(false);
 
-  const redesDestino = REDES_PUBLICACION;
+  useEffect(() => {
+    if (redesInitDone.current || !canales) return;
+    redesInitDone.current = true;
+    setRedesDestino(redesIniciales(canales));
+  }, [canales]);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -1815,14 +1938,15 @@ const ManualPostScreen: React.FC = () => {
     }
     if (scheduleMode === 'now') {
       const webhookNow = getAutomationWebhookUrl(config);
-      if (!webhookNow && !canales?.linkedin?.conectado) {
-        notify('Configura la URL de Make en Ajustes o conecta LinkedIn en Canales.');
+      const hayDestinoActivo = redesDestino.some((r) => redEstaConectada(r, canales));
+      if (!webhookNow && !hayDestinoActivo) {
+        notify('Conecta al menos una red en Canales o configura la URL de Make en Ajustes.');
         return;
       }
     }
     setSaving(true);
     try {
-      const redes = redesDestino;
+      const redes = redesDestino.length ? redesDestino : [RED_PRINCIPAL];
       let imagenUrl: string | null = null;
       if (uploadedFiles[0]?.file) {
         try {
@@ -1862,10 +1986,10 @@ const ManualPostScreen: React.FC = () => {
             webhookNow
           );
           await actualizarPublicacion(postId, { estado: 'publicado' });
-          notify('Publicado en LinkedIn vía Make');
+          notify(`Publicado vía Make en ${redes.join(', ')}`);
         } else {
           await publishPostNowFn(postId);
-          notify('Publicación enviada');
+          notify(`Publicación enviada a ${redes.join(', ')}`);
         }
         await registrarActividad(user.uid, {
           tipo: 'publicado',
@@ -2039,22 +2163,23 @@ const ManualPostScreen: React.FC = () => {
           {/* RIGHT COLUMN — Scheduling & Actions */}
           <div className="space-y-6">
 
-            {/* LinkedIn Destination */}
+            {/* Destinos */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.2 }}
               className="bg-white/60 dark:bg-card backdrop-blur-xl border border-white/40 dark:border-border rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
             >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#0a66c2]/10 rounded-2xl flex items-center justify-center shrink-0">
-                  <Linkedin className="w-6 h-6 text-[#0a66c2]" />
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-[#06b6d4]/10 rounded-2xl flex items-center justify-center shrink-0">
+                  <Share2 className="w-6 h-6 text-[#06b6d4]" />
                 </div>
                 <div>
-                  <h3 className="font-semibold">Destino</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">Publicación en LinkedIn (Postiz + n8n)</p>
+                  <h3 className="font-semibold">Redes de publicación</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Elige dónde publicar (puede ser más de una)</p>
                 </div>
               </div>
+              <RedSelector value={redesDestino} onChange={setRedesDestino} canales={canales} />
             </motion.div>
 
             {/* Scheduling card */}
@@ -2180,7 +2305,7 @@ const ManualPostScreen: React.FC = () => {
                 <div className="max-h-[300px] overflow-y-auto rounded-2xl bg-white/50 dark:bg-black/20 backdrop-blur-sm">
                   <SocialPostPreview
                     network={RED_PRINCIPAL}
-                    authorName="Campus Lands"
+                    authorName="Influencer"
                     authorInitials="CL"
                     content={postText}
                     imageUrl={uploadedFiles[0]?.preview ?? null}
@@ -2234,7 +2359,7 @@ const ManualPostScreen: React.FC = () => {
               </p>
               <div className="space-y-2.5">
                 {[
-                  { icon: <Save className="w-4 h-4" />, label: 'CampusSocial', desc: 'Almacena y programa' },
+                  { icon: <Save className="w-4 h-4" />, label: 'InfluencerSocial', desc: 'Almacena y programa' },
                   { icon: <ChevronRight className="w-4 h-4" />, label: 'n8n', desc: 'Automatiza el flujo' },
                   { icon: <ChevronRight className="w-4 h-4" />, label: 'Postiz', desc: 'Publica en LinkedIn' },
                 ].map((s, i) => (
@@ -2280,7 +2405,12 @@ const DraftsScreen: React.FC<{ onNavigate: (screen: string) => void }> = ({ onNa
 
   const networkIcons: Partial<Record<RedSocial, React.ReactNode>> = {
     linkedin: <Linkedin className="w-4 h-4 text-[#0a66c2]" />,
-  };
+    facebook: <Facebook className="w-4 h-4 text-[#1877f2]" />,
+    instagram: <Instagram className="w-4 h-4 text-[#e1306c]" />,
+    tiktok: <Music2 className="w-4 h-4" />,
+    freelancer: <Briefcase className="w-4 h-4 text-[#29b2fe]" />,
+    fiverr: <Store className="w-4 h-4 text-[#1dbf73]" />,
+  } as const;
 
   return (
     <div className="h-full overflow-y-auto">
@@ -2468,7 +2598,7 @@ const CalendarScreen: React.FC<{ onNavigate: (screen: string) => void }> = ({ on
   const [schedulerMsg, setSchedulerMsg] = useState('');
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const dragRef = useRef(false);
-  const displayName = profile?.nombre || 'Campus Lands';
+  const displayName = profile?.nombre || 'Influencer';
   const initials = (profile?.nombre || user?.email || 'U').slice(0, 2).toUpperCase();
   const mes = viewDate.getMonth();
   const anio = viewDate.getFullYear();
@@ -2529,7 +2659,9 @@ const CalendarScreen: React.FC<{ onNavigate: (screen: string) => void }> = ({ on
     setSchedulerMsg('');
     try {
       await publishPostNowFn(post.id);
-      setSchedulerMsg('Publicación enviada a LinkedIn.');
+      setSchedulerMsg(
+        `Publicación enviada a ${(post.redesDestino ?? [RED_PRINCIPAL]).join(', ')}`
+      );
       invalidate();
     } catch (e) {
       setSchedulerMsg(mensajeCallable(e));
@@ -2960,7 +3092,7 @@ const AgentScreen: React.FC<{ onNavigate: (screen: string) => void }> = ({ onNav
       setMessages([
         {
           role: 'bot',
-          text: '¡Hola! Soy el asistente de CampusSocial. Puedo ayudarte con ideas y copy. Cuando tengas un tema listo, usa Generar publicación para abrir Nueva publicación y crear el borrador automáticamente.',
+          text: '¡Hola! Soy el asistente de InfluencerSocial. Puedo ayudarte con ideas y copy. Cuando tengas un tema listo, usa Generar publicación para abrir Nueva publicación y crear el borrador automáticamente.',
         },
       ]);
     }
@@ -3022,7 +3154,7 @@ const AgentScreen: React.FC<{ onNavigate: (screen: string) => void }> = ({ onNav
             Asistente IA
           </h1>
           <p className="text-muted-foreground text-sm">
-            Apartado del agente CampusSocial: ideas, edición y copy para LinkedIn (Gemini)
+            Apartado del agente InfluencerSocial: ideas, edición y copy para LinkedIn (Gemini)
           </p>
         </motion.div>
 
@@ -3149,7 +3281,7 @@ const AgentScreen: React.FC<{ onNavigate: (screen: string) => void }> = ({ onNav
                 </button>
               </div>
               <div className="text-center mt-2">
-                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">CampusSocial AI • Gemini Powered</span>
+                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">InfluencerSocial AI • Gemini Powered</span>
               </div>
             </div>
           </motion.div>
@@ -3170,7 +3302,7 @@ const AgentScreen: React.FC<{ onNavigate: (screen: string) => void }> = ({ onNav
               variant="liquid"
               className="w-full mb-4 shadow-md shadow-[#06b6d4]/20"
               icon={<Sparkles className="w-4 h-4" />}
-              onClick={() => irAGenerarPublicacion(lastUserPrompt || input || 'Publicación Campus Lands')}
+              onClick={() => irAGenerarPublicacion(lastUserPrompt || input || 'Publicación InfluencerSocial')}
             >
               Generar publicación
             </Button>
@@ -3223,38 +3355,154 @@ const ChannelsScreen: React.FC = () => {
   const invalidate = useInvalidateCampus();
   const { data: canales, isLoading } = useCanales();
   const { stats } = useDashboardStats();
-  const [connectModalOpen, setConnectModalOpen] = useState(false);
+  const [connectModalRed, setConnectModalRed] = useState<RedSocial | null>(null);
   const [oauthNotice, setOauthNotice] = useState<string | null>(null);
 
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const linkedin = params.get('linkedin');
-    if (!linkedin) return;
+    const paramsTxt = params.toString();
+    if (!paramsTxt) return;
 
+    const linkedin = params.get('linkedin');
+    const meta = params.get('meta');
+    const tiktok = params.get('tiktok');
     if (linkedin === 'success') {
       setOauthNotice('LinkedIn conectado correctamente.');
       invalidate();
-    } else {
+    } else if (linkedin) {
       const detail = params.get('linkedin_error');
       setOauthNotice(
         detail
           ? `No se pudo conectar LinkedIn: ${detail}`
           : 'No se pudo completar la conexión con LinkedIn.'
       );
+    } else if (meta === 'success') {
+      setOauthNotice('Facebook/Instagram conectados correctamente.');
+      invalidate();
+    } else if (meta) {
+      const detail = params.get('meta_error');
+      setOauthNotice(
+        detail
+          ? `No se pudo conectar Facebook/Instagram: ${detail}`
+          : 'No se pudo completar la conexión con Facebook/Instagram.'
+      );
+    } else if (tiktok === 'success') {
+      setOauthNotice('TikTok conectado correctamente.');
+      invalidate();
+    } else if (tiktok) {
+      const detail = params.get('tiktok_error');
+      setOauthNotice(
+        detail
+          ? `No se pudo conectar TikTok: ${detail}`
+          : 'No se pudo completar la conexión con TikTok.'
+      );
     }
     window.history.replaceState({}, '', window.location.pathname);
   }, [invalidate]);
 
-  const linkedinCanal = canales?.linkedin;
-  const linkedinConnected = Boolean(linkedinCanal?.conectado);
-  const linkedinAccount = linkedinCanal?.cuentaNombre ?? null;
+  const conectadas = CATALOGO_REDES.filter(
+    (r) => r.tipo === 'oauth' && redEstaConectada(r.id, canales)
+  ).length;
+  const totalOauth = CATALOGO_REDES.filter((r) => r.tipo === 'oauth').length;
+  const fiverrActivo = Boolean(canales?.fiverr?.conectado);
+
+  const toggleCanal = async (red: RedSocial, conectado: boolean) => {
+    if (!user) return;
+    await guardarCanal(user.uid, red, { conectado, cuentaNombre: conectado ? 'Manual' : null });
+    invalidate();
+  };
+
+  const renderCanalCard = (red: (typeof CATALOGO_REDES)[number]) => {
+    const config = redConfig(red.id);
+    if (!config) return null;
+    const canal = canales?.[red.id];
+    const conectado = Boolean(canal?.conectado);
+    const cuenta = canal?.cuentaNombre;
+
+    return (
+      <Card key={red.id} className={conectado ? 'border-emerald-200 dark:border-emerald-900' : ''}>
+        <div className="flex items-start gap-4">
+          <div
+            className="w-14 h-14 bg-white dark:bg-card rounded-xl flex items-center justify-center shadow-sm shrink-0"
+            style={{ border: `1px solid ${config.color}22` }}
+          >
+            {redIcono(red.id, 'w-7 h-7')}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-lg flex items-center gap-2">
+              {config.nombre}
+              {conectado && <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
+            </div>
+            {config.tipo === 'proximamente' ? (
+              <span className="inline-block mt-1 text-[11px] font-medium px-2 py-0.5 rounded-lg bg-accent text-muted-foreground">
+                Próximamente
+              </span>
+            ) : conectado ? (
+              <p className="text-sm text-muted-foreground mt-1">
+                {config.tipo === 'manual' ? (
+                  'Canal manual activo'
+                ) : (
+                  <>
+                    Conectado:{' '}
+                    <span className="font-medium text-foreground">{cuenta ?? 'Cuenta'}</span>
+                  </>
+                )}
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground mt-1">Sin conectar</p>
+            )}
+            <p className="text-xs text-muted-foreground mt-2">{config.descripcion}</p>
+          </div>
+        </div>
+        <div className="mt-6 pt-4 border-t border-border flex flex-wrap gap-2">
+          {config.tipo === 'proximamente' ? (
+            <Button variant="ghost" size="sm" disabled>
+              Se habilita con la conexión real
+            </Button>
+          ) : config.tipo === 'manual' ? (
+            fiverrActivo ? (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => void toggleCanal(red.id, false)}
+              >
+                Desactivar canal manual
+              </Button>
+            ) : (
+              <Button variant="primary" size="sm" onClick={() => void toggleCanal(red.id, true)}>
+                Activar canal manual
+              </Button>
+            )
+          ) : conectado ? (
+            <>
+              <Button variant="ghost" size="sm" onClick={() => setConnectModalRed(red.id)}>
+                Reconfigurar
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => void toggleCanal(red.id, false)}
+              >
+                Desconectar
+              </Button>
+            </>
+          ) : (
+            <Button variant="primary" size="sm" onClick={() => setConnectModalRed(red.id)}>
+              Conectar {config.nombre}
+            </Button>
+          )}
+        </div>
+      </Card>
+    );
+  };
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">Canal LinkedIn</h1>
+        <h1 className="text-2xl font-bold mb-2">Canales conectados</h1>
         <p className="text-muted-foreground">
-          Conecta tu perfil LinkedIn con OAuth (LinkedIn Developers). Las publicaciones usan la API oficial.
+          Conecta tus redes con OAuth oficial. Las publicaciones usan las APIs reales de cada
+          plataforma y puedes elegir las redes al crear cada publicación.
         </p>
       </div>
 
@@ -3264,77 +3512,25 @@ const ChannelsScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Alert */}
-      <div className="mb-6 flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-        <div className="w-5 h-5 text-blue-600 mt-0.5">
-          <Zap className="w-5 h-5" />
+      {isLoading ? (
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-40 w-full rounded-3xl" />
+          ))}
         </div>
-        <div className="flex-1">
-          <p className="text-sm text-blue-900">
-            <strong>LinkedIn OAuth.</strong> Autorizas tu cuenta en LinkedIn; los tokens quedan en el servidor de CampusSocial.
-          </p>
+      ) : (
+        <div className="grid md:grid-cols-2 gap-4 mb-8">
+          {CATALOGO_REDES.map(renderCanalCard)}
         </div>
-      </div>
-
-      <Card className={linkedinConnected ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900' : ''}>
-        <div className="flex items-start gap-4">
-          <div className="w-16 h-16 bg-white dark:bg-card rounded-xl flex items-center justify-center shadow-sm shrink-0">
-            <Linkedin className="w-8 h-8 text-[#0a66c2]" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="font-semibold text-lg flex items-center gap-2">
-              LinkedIn
-              {linkedinConnected && <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
-            </div>
-            {linkedinConnected ? (
-              <p className="text-sm text-muted-foreground mt-1">
-                Conectado: <span className="font-medium text-foreground">{linkedinAccount}</span>
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground mt-1">Sin vincular — necesario para publicar automáticamente</p>
-            )}
-            <p className="text-xs text-muted-foreground mt-2">
-              Flujo: CampusSocial → API LinkedIn (ugcPosts). Opcional: n8n para generar contenido antes de publicar.
-            </p>
-          </div>
-        </div>
-        <div className="mt-6 pt-4 border-t border-border flex flex-wrap gap-2">
-          {linkedinConnected ? (
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setConnectModalOpen(true)}
-              >
-                Reconfigurar
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={async () => {
-                  if (!user) return;
-                  await guardarCanal(user.uid, 'linkedin', { conectado: false, cuentaNombre: null });
-                  invalidate();
-                }}
-              >
-                Desconectar
-              </Button>
-            </>
-          ) : (
-            <Button variant="primary" size="sm" onClick={() => setConnectModalOpen(true)}>
-              Conectar LinkedIn
-            </Button>
-          )}
-        </div>
-      </Card>
+      )}
 
       {/* Stats */}
-      <div className="mt-8 grid md:grid-cols-3 gap-4">
+      <div className="mt-4 grid md:grid-cols-3 gap-4">
         <Card className="text-center">
           <div className="text-3xl font-bold bg-gradient-to-r from-[#667eea] to-[#764ba2] bg-clip-text text-transparent">
-            {linkedinConnected ? '1/1' : '0/1'}
+            {conectadas}/{totalOauth}
           </div>
-          <p className="text-sm text-muted-foreground mt-1">LinkedIn conectado</p>
+          <p className="text-sm text-muted-foreground mt-1">Canales OAuth conectados</p>
         </Card>
         <Card className="text-center">
           <div className="text-3xl font-bold text-emerald-600">{stats.publicados}</div>
@@ -3347,14 +3543,16 @@ const ChannelsScreen: React.FC = () => {
       </div>
 
       <ConnectChannelModal
-        isOpen={connectModalOpen}
-        onClose={() => setConnectModalOpen(false)}
+        key={connectModalRed ?? 'cerrado'}
+        isOpen={connectModalRed !== null}
+        red={connectModalRed ?? 'linkedin'}
+        onClose={() => setConnectModalRed(null)}
         onSuccess={async (data) => {
           if (!user) return;
           await registrarActividad(user.uid, {
             tipo: 'publicado',
-            mensaje: `LinkedIn vinculado: ${data.cuentaNombre}`,
-            red: 'linkedin',
+            mensaje: `${redConfig(connectModalRed ?? 'linkedin')?.nombre} vinculado: ${data.cuentaNombre}`,
+            red: connectModalRed ?? 'linkedin',
           });
           invalidate();
         }}
@@ -3567,7 +3765,7 @@ const DashboardHome: React.FC = () => {
         transition={{ duration: 0.4 }}
       >
         <h1 className="text-2xl font-bold bg-gradient-to-r from-[#0B1F4B] to-[#2BBDE8] dark:from-[#60a5fa] dark:to-[#22d3ee] bg-clip-text text-transparent">Panel principal</h1>
-        <p className="text-sm text-muted-foreground mt-1">Resumen de tu actividad en CampusSocial</p>
+        <p className="text-sm text-muted-foreground mt-1">Resumen de tu actividad en InfluencerSocial</p>
       </motion.div>
 
       {/* Stat Cards */}
@@ -3775,7 +3973,7 @@ export default function App({ productionMode = false }: { productionMode?: boole
         <div className="max-w-[1600px] mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <CampusSocialLogo size="sm" textClassName="!text-foreground font-bold text-sm !bg-none" />
+              <InfluencerSocialLogo size="sm" textClassName="!text-foreground font-bold text-sm !bg-none" />
             </div>
             <Badge variant="purple">8 pantallas</Badge>
           </div>

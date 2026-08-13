@@ -1,6 +1,6 @@
-# CampusSocial — Web
+# InfluencerSocial — Web
 
-Aplicación principal de **CampusSocial**: automatización de publicaciones (foco LinkedIn), UI desde Figma + Firebase.
+Aplicación principal de **InfluencerSocial**: automatización de publicaciones (foco LinkedIn), UI desde Figma + Firebase.
 
 ## Inicio rápido
 

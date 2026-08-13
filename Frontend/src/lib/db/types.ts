@@ -1,6 +1,13 @@
 import type { Timestamp } from 'firebase/firestore';
 
-export type RedSocial = 'linkedin' | 'instagram' | 'facebook' | 'twitter' | 'tiktok';
+export type RedSocial =
+  | 'linkedin'
+  | 'instagram'
+  | 'facebook'
+  | 'twitter'
+  | 'tiktok'
+  | 'freelancer'
+  | 'fiverr';
 
 export type EstadoPublicacion =
   | 'borrador'
@@ -39,6 +46,8 @@ export type CanalesDoc = {
   facebook?: CanalRed;
   twitter?: CanalRed;
   tiktok?: CanalRed;
+  freelancer?: CanalRed;
+  fiverr?: CanalRed;
   actualizadoEn?: Timestamp;
 };
 

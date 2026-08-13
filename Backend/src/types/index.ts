@@ -1,4 +1,11 @@
-export type RedSocial = 'instagram' | 'facebook' | 'linkedin' | 'tiktok' | 'youtube';
+export type RedSocial =
+  | 'instagram'
+  | 'facebook'
+  | 'linkedin'
+  | 'tiktok'
+  | 'youtube'
+  | 'freelancer'
+  | 'fiverr';
 
 export type EstadoPublicacion = 'borrador' | 'programado' | 'publicado' | 'fallido';
 

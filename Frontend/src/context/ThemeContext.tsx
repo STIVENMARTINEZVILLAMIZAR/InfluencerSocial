@@ -9,7 +9,7 @@ type ThemeState = {
 };
 
 const ThemeCtx = createContext<ThemeState | null>(null);
-const STORAGE_KEY = 'campus-social-theme';
+const STORAGE_KEY = 'influencer-social-theme';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<ThemeMode>(() => {

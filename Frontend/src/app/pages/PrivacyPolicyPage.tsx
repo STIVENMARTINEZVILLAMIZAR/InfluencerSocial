@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
-import { CampusSocialLogo } from '../components/CampusSocialLogo';
+import { InfluencerSocialLogo } from '../components/InfluencerSocialLogo';
 
 const CONTACT_EMAIL = 'stivenmartinezvillamizar@gmail.com';
 const LAST_UPDATED = '28 de mayo de 2026';
@@ -21,7 +21,7 @@ export function PrivacyPolicyPage() {
 
       <header className="border-b border-white/60 dark:border-border/50 bg-white/60 dark:bg-card/80 backdrop-blur-xl sticky top-0 z-50 shadow-sm">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
-          <CampusSocialLogo size="sm" textClassName="!text-foreground !bg-none" />
+          <InfluencerSocialLogo size="sm" textClassName="!text-foreground !bg-none" />
           <Link
             to="/"
             className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-[#06b6d4] transition-colors cursor-pointer"
@@ -40,8 +40,8 @@ export function PrivacyPolicyPage() {
 
             <section className="space-y-4 text-[15px] leading-relaxed text-slate-600 dark:text-slate-300">
               <p className="text-lg font-medium text-slate-800 dark:text-slate-200">
-                Esta política describe cómo <strong>CampusSocial</strong> (producto de{' '}
-                <strong>Campuslands — Educación Tecnológica</strong>, Colombia) recopila, usa y protege
+                Esta política describe cómo <strong>InfluencerSocial</strong> (producto de{' '}
+                <strong>InfluencerSocial</strong>, Colombia) recopila, usa y protege
                 los datos personales cuando utilizas nuestra plataforma de automatización de publicaciones
                 en redes sociales.
               </p>
@@ -52,7 +52,7 @@ export function PrivacyPolicyPage() {
               </h2>
               <div className="bg-white/50 dark:bg-accent/20 p-5 rounded-2xl border border-white/60 dark:border-border/50">
                 <p className="m-0">
-                  <strong>Campuslands / CampusSocial</strong>
+                  <strong>InfluencerSocial</strong>
                   <br />
                   Contacto:{' '}
                   <a href={`mailto:${CONTACT_EMAIL}`} className="font-medium hover:underline cursor-pointer">
@@ -107,7 +107,7 @@ export function PrivacyPolicyPage() {
                 <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#1e3a8a]/10 to-[#06b6d4]/10 dark:from-[#1e3a8a]/30 dark:to-[#06b6d4]/30 flex items-center justify-center text-[#06b6d4]">5</span>
                 Servicios de terceros
               </h2>
-              <p>Podemos compartir datos limitados con proveedores que nos ayudan a operar CampusSocial:</p>
+              <p>Podemos compartir datos limitados con proveedores que nos ayudan a operar InfluencerSocial:</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 {[
                   { name: 'Google Firebase', desc: 'Autenticación, base de datos, almacenamiento, funciones en la nube.' },
@@ -164,7 +164,7 @@ export function PrivacyPolicyPage() {
                 <div>
                   <h2 className="text-lg font-bold mb-2 text-slate-800 dark:text-slate-100">9. Menores</h2>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    CampusSocial está dirigido a organizaciones y profesionales. No recopilamos datos de menores de 18 años intencionadamente.
+                    InfluencerSocial está dirigido a organizaciones y profesionales. No recopilamos datos de menores de 18 años intencionadamente.
                   </p>
                 </div>
                 <div>
@@ -181,7 +181,7 @@ export function PrivacyPolicyPage() {
 
       <footer className="relative z-10 border-t border-white/60 dark:border-border/50 bg-white/40 dark:bg-card/50 backdrop-blur-md mt-12">
         <div className="max-w-4xl mx-auto px-6 py-8 text-sm text-center font-medium text-slate-500 dark:text-slate-400">
-          © 2026 Campuslands — Educación Tecnológica Colombia · CampusSocial
+          © 2026 InfluencerSocial
         </div>
       </footer>
     </div>

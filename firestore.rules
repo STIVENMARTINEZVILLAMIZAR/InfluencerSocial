@@ -50,6 +50,14 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /oauth_meta_pending/{stateId} {
+      allow read, write: if false;
+    }
+
+    match /oauth_tiktok_pending/{stateId} {
+      allow read, write: if false;
+    }
+
     match /chats/{userId}/mensajes/{messageId} {
       allow read, write: if isOwner(userId);
     }

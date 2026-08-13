@@ -19,7 +19,7 @@ export const LINKEDIN_REDIRECT_URLS_TO_REGISTER = [
   'http://127.0.0.1:5173/oauth/linkedin',
 ] as const;
 
-/** URI de retorno que usa CampusSocial al conectar */
+/** URI de retorno que usa InfluencerSocial al conectar */
 export function getLinkedInOAuthRedirectUri(): string {
   const fromEnv = import.meta.env.VITE_LINKEDIN_OAUTH_REDIRECT_URI?.trim();
   if (fromEnv) {
