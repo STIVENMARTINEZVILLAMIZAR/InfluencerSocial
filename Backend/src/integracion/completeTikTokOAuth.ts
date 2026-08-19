@@ -35,9 +35,10 @@ export const completeTikTokOAuth = onCall({ region: 'us-central1' }, async (requ
   }
 
   const redirectUri = pending.redirectUri as string;
+  const codeVerifier = (pending.codeVerifier as string | undefined) ?? undefined;
 
   try {
-    const token = await exchangeTikTokCode(code.trim(), redirectUri);
+    const token = await exchangeTikTokCode(code.trim(), redirectUri, codeVerifier);
     const accessToken = token.access_token;
 
     let displayName = '';

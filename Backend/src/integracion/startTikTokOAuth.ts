@@ -1,6 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
-import { randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import {
   getTikTokClientKey,
   getTikTokClientSecret,
@@ -43,12 +43,15 @@ export const startTikTokOAuth = onCall({ region: 'us-central1' }, async (request
   }
 
   const state = randomBytes(24).toString('hex');
+  const codeVerifier = randomBytes(32).toString('base64url');
+  const codeChallenge = createHash('sha256').update(codeVerifier).digest('base64url');
   const uid = request.auth.uid;
   const db = getFirestore();
 
   await db.collection('oauth_tiktok_pending').doc(state).set({
     uid,
     redirectUri: redirect,
+    codeVerifier,
     creadoEn: FieldValue.serverTimestamp(),
   });
 
@@ -58,6 +61,8 @@ export const startTikTokOAuth = onCall({ region: 'us-central1' }, async (request
     scope: getTikTokOAuthScopes(),
     redirect_uri: redirect,
     state,
+    code_challenge: codeChallenge,
+    code_challenge_method: 'S256',
   });
 
   const authUrl = `${TIKTOK_AUTH_URL}?${params.toString()}`;

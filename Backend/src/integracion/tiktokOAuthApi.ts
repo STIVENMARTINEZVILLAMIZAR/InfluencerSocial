@@ -61,7 +61,8 @@ async function postForm(url: string, body: URLSearchParams): Promise<TikTokToken
 /** Intercambia el code de autorización por access token (24 h) + refresh token (365 días). */
 export async function exchangeTikTokCode(
   code: string,
-  redirectUri: string
+  redirectUri: string,
+  codeVerifier?: string
 ): Promise<TikTokTokenResponse> {
   const body = new URLSearchParams({
     client_key: getTikTokClientKey(),
@@ -70,6 +71,9 @@ export async function exchangeTikTokCode(
     grant_type: 'authorization_code',
     redirect_uri: redirectUri,
   });
+  if (codeVerifier) {
+    body.set('code_verifier', codeVerifier);
+  }
   return postForm(`${TIKTOK_API_BASE}/oauth/token/`, body);
 }
 
