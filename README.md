@@ -75,7 +75,7 @@ docker compose up -d
 3. Con ngrok: `ngrok http 5678` → `N8N_WEBHOOK_URL=https://xxx.ngrok-free.dev/webhook/campus-post-form`
 4. App → **Ajustes** → misma URL · **Asistente IA** → **Generar publicación** abre Nueva publicación automáticamente
 
-Alternativa en la nube (sin Docker): [docs/MAKE_SETUP.md](docs/MAKE_SETUP.md)
+
 
 ## Documentación
 
