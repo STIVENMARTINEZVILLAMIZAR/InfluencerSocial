@@ -624,6 +624,9 @@ const LandingPage: React.FC<{ onNavigate: (screen: string) => void }> = ({ onNav
               <a href="/privacidad" className="hover:text-[#06b6d4] transition-colors">
                 Política de privacidad
               </a>
+              <a href="/terminos" className="hover:text-[#06b6d4] transition-colors">
+                Términos y condiciones
+              </a>
               <span className="hidden sm:inline text-[#06b6d4]/30">•</span>
               <span>© 2026 InfluencerSocial</span>
             </div>

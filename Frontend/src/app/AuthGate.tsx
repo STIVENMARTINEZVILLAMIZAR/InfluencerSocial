@@ -165,6 +165,10 @@ export default function AuthGate() {
           <a href="/privacidad" className="hover:text-[#06b6d4] transition-colors cursor-pointer">
             Política de privacidad
           </a>
+          {' · '}
+          <a href="/terminos" className="hover:text-[#06b6d4] transition-colors cursor-pointer">
+            Términos y condiciones
+          </a>
         </p>
       </div>
     </div>
