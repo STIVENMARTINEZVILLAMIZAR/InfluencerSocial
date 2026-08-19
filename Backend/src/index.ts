@@ -7,6 +7,7 @@ import { initializeApp } from "firebase-admin/app";
 initializeApp();
 
 export { generateContent } from "./ai/generateContent";
+export { generateVideo } from "./ai/generateVideo";
 export { chatWithAgent } from "./ai/chatWithAgent";
 export { schedulePost } from "./posts/schedulePost";
 export { publishPostNow } from "./posts/publishPostCallable";

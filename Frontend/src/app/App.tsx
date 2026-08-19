@@ -18,6 +18,7 @@ import { ejecutarFlujoPublicacion, getAutomationWebhookUrl } from '../services/m
 import {
   chatWithAgent,
   generateContent as generateContentFn,
+  generateVideo as generateVideoFn,
   schedulePost as schedulePostFn,
   publishPostNow as publishPostNowFn,
   processDueScheduledPosts,
@@ -1120,6 +1121,8 @@ const NewPostScreen: React.FC = () => {
   const [generatedText, setGeneratedText] = useState('');
   const [imagenNota, setImagenNota] = useState('');
   const [imagenUrl, setImagenUrl] = useState('');
+  const [generarVideo, setGenerarVideo] = useState(false);
+  const [videoUrl, setVideoUrl] = useState('');
   const [manualUploads, setManualUploads] = useState<UploadedMedia[]>([]);
   const [isDraggingMedia, setIsDraggingMedia] = useState(false);
   const newPostFileRef = useRef<HTMLInputElement>(null);
@@ -1141,7 +1144,7 @@ const NewPostScreen: React.FC = () => {
     const mapped = files.map((f) => ({
       name: f.name,
       type: f.type.startsWith('video') ? 'video' : 'image',
-      preview: f.type.startsWith('image') ? URL.createObjectURL(f) : undefined,
+      preview: URL.createObjectURL(f),
       file: f,
     }));
     setManualUploads((prev) => [...prev, ...mapped].slice(0, 4));
@@ -1154,7 +1157,8 @@ const NewPostScreen: React.FC = () => {
   const resolvePostImageUrl = async (): Promise<string | null> => {
     if (!user) return null;
     let url: string | null = null;
-    if (generateImage && imagenUrl) url = imagenUrl;
+    if (videoUrl) url = videoUrl;
+    else if (generateImage && imagenUrl) url = imagenUrl;
     else if (!generateImage && manualUploads[0]?.file) {
       url = await subirArchivoPublicacion(user.uid, manualUploads[0].file);
     } else {
@@ -1240,6 +1244,26 @@ const NewPostScreen: React.FC = () => {
       setImagenUrl(gen.imagenUrl ?? '');
       setImagenNota(gen.imagenNota ?? '');
       setHasContent(true);
+
+      let generatedVideoUrl = '';
+      if (generarVideo) {
+        setToastMsg('Generando video con IA… puede tardar ~1 minuto');
+        setShowToast(true);
+        try {
+          const vid = await generateVideoFn(topicText.trim(), gen.imagenUrl ?? null);
+          generatedVideoUrl = vid.videoUrl;
+          setVideoUrl(vid.videoUrl);
+          if (vid.nota) setImagenNota(vid.nota);
+          setToastMsg(`Video generado con ${vid.model ?? 'IA'}. Revisa la vista previa.`);
+        } catch (e) {
+          setVideoUrl('');
+          setErrorMsg(
+            `No se pudo generar el video: ${e instanceof Error ? e.message : 'error desconocido'}`
+          );
+        }
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3500);
+      }
       const extra = gen.imagenGenerada
         ? ' · con imagen IA'
         : gen.imagenNota
@@ -1256,7 +1280,7 @@ const NewPostScreen: React.FC = () => {
         await persistBorradorSnapshot(
           {
             text: fullText,
-            imageUrl: gen.imagenUrl ?? null,
+            imageUrl: generatedVideoUrl || (gen.imagenUrl ?? null),
             topicText: topicText.trim(),
             toneText: toneText,
             withIaImage: generateImage && Boolean(gen.imagenUrl),
@@ -1279,7 +1303,7 @@ const NewPostScreen: React.FC = () => {
               schedule_now: false,
               platforms,
               body: [gen.contenido, tags].filter(Boolean).join('\n\n'),
-              image_url: gen.imagenUrl ?? null,
+              image_url: generatedVideoUrl || (gen.imagenUrl ?? null),
             },
             webhook
           );
@@ -1392,6 +1416,11 @@ const NewPostScreen: React.FC = () => {
       if (platforms.includes('tiktok') && !finalImageUrl) {
         setMakeWarning(
           'TikTok requiere un video (mp4/mov/webm): sube un archivo de video o usa un video con IA, o TikTok no podrá publicar.'
+        );
+      }
+      if (videoUrl && platforms.some((r) => r !== 'tiktok')) {
+        setMakeWarning(
+          'El video generado con IA se publica solo en TikTok (vertical 9:16). Las demás redes seleccionadas quedarán sin medio o con error.'
         );
       }
       const postTitle = topic.slice(0, 80) || 'Publicación';
@@ -1608,9 +1637,36 @@ const NewPostScreen: React.FC = () => {
                   checked={generateImage}
                   onChange={(v) => {
                     setGenerateImage(v);
-                    if (v) setManualUploads([]);
+                    if (v) {
+                      setManualUploads([]);
+                      setGenerarVideo(false);
+                    }
                   }}
                 />
+                <Toggle
+                  label="Generar video con IA (TikTok)"
+                  checked={generarVideo}
+                  onChange={(v) => {
+                    setGenerarVideo(v);
+                    if (v) {
+                      setGenerateImage(false);
+                      setManualUploads([]);
+                      setVideoUrl('');
+                      setSelectedRedes(['tiktok']);
+                      setToastMsg('Con video IA se publica solo en TikTok (vertical 9:16).');
+                      setShowToast(true);
+                      setTimeout(() => setShowToast(false), 3500);
+                    } else {
+                      setVideoUrl('');
+                    }
+                  }}
+                />
+                {generarVideo && (
+                  <p className="text-xs text-cyan-700 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-800 rounded-2xl px-3 py-2">
+                    Se genera un video vertical (9:16) con IA al crear la publicación. Requiere
+                    POLLINATIONS_API_KEY en Backend/.secret.local (gratis en enter.pollinations.ai/keys).
+                  </p>
+                )}
                 <AnimatePresence>
                   {!generateImage && (
                     <motion.div
@@ -1663,11 +1719,15 @@ const NewPostScreen: React.FC = () => {
                               className="relative aspect-square rounded-xl overflow-hidden bg-accent"
                             >
                               {f.preview ? (
-                                <img
-                                  src={f.preview}
-                                  alt={f.name}
-                                  className="w-full h-full object-cover"
-                                />
+                                f.type === 'video' ? (
+                                  <video src={f.preview} muted playsInline className="w-full h-full object-cover" />
+                                ) : (
+                                  <img
+                                    src={f.preview}
+                                    alt={f.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                )
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center">
                                   <Video className="w-6 h-6 text-muted-foreground" />
@@ -1786,14 +1846,30 @@ const NewPostScreen: React.FC = () => {
                     transition={{ duration: 0.4 }}
                     className="space-y-4"
                   >
-                    <SocialPostPreview
-                      network={RED_PRINCIPAL}
-                      authorName={displayName}
-                      authorInitials={initials}
-                      content={generatedText || topic}
-                      imageUrl={previewImageUrl}
-                      charLimit={3000}
-                    />
+                    {videoUrl || manualUploads[0]?.type === 'video' ? (
+                      <div className="rounded-2xl overflow-hidden border border-white/40 dark:border-border bg-black/5 dark:bg-black/20">
+                        <video
+                          src={videoUrl || (previewImageUrl ?? undefined)}
+                          controls
+                          playsInline
+                          className="w-full max-h-[480px] object-contain"
+                        />
+                        <p className="text-xs text-center text-muted-foreground px-3 py-2">
+                          {videoUrl
+                            ? 'Video generado con IA · vertical 9:16 · listo para TikTok'
+                            : 'Video subido · listo para publicar en TikTok'}
+                        </p>
+                      </div>
+                    ) : (
+                      <SocialPostPreview
+                        network={RED_PRINCIPAL}
+                        authorName={displayName}
+                        authorInitials={initials}
+                        content={generatedText || topic}
+                        imageUrl={previewImageUrl}
+                        charLimit={3000}
+                      />
+                    )}
                     {generateImage && imagenNota && (
                       <p className="text-xs text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl px-3 py-2">
                         {imagenNota}
@@ -1915,7 +1991,7 @@ const ManualPostScreen: React.FC = () => {
     const mapped = files.map(f => ({
       name: f.name,
       type: f.type.startsWith('video') ? 'video' : 'image',
-      preview: f.type.startsWith('image') ? URL.createObjectURL(f) : undefined,
+      preview: URL.createObjectURL(f),
       file: f,
     }));
     setUploadedFiles(prev => [...prev, ...mapped]);
@@ -2135,7 +2211,11 @@ const ManualPostScreen: React.FC = () => {
                         <motion.div key={i} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
                           className="relative group rounded-2xl overflow-hidden bg-accent aspect-square shadow-sm border border-border/50">
                           {f.preview ? (
-                            <img src={f.preview} alt={f.name} className="w-full h-full object-cover" />
+                            f.type === 'video' ? (
+                              <video src={f.preview} muted playsInline className="w-full h-full object-cover" />
+                            ) : (
+                              <img src={f.preview} alt={f.name} className="w-full h-full object-cover" />
+                            )
                           ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center gap-2">
                               <Video className="w-8 h-8 text-muted-foreground" />
@@ -2306,14 +2386,28 @@ const ManualPostScreen: React.FC = () => {
                   Vista previa
                 </h3>
                 <div className="max-h-[300px] overflow-y-auto rounded-2xl bg-white/50 dark:bg-black/20 backdrop-blur-sm">
-                  <SocialPostPreview
-                    network={RED_PRINCIPAL}
-                    authorName="Influencer"
-                    authorInitials="CL"
-                    content={postText}
-                    imageUrl={uploadedFiles[0]?.preview ?? null}
-                    charLimit={3000}
-                  />
+                  {uploadedFiles[0]?.type === 'video' && uploadedFiles[0]?.preview ? (
+                    <div className="rounded-2xl overflow-hidden border border-white/40 dark:border-border bg-black/5 dark:bg-black/20">
+                      <video
+                        src={uploadedFiles[0].preview}
+                        controls
+                        playsInline
+                        className="w-full max-h-[260px] object-contain"
+                      />
+                      <p className="text-xs text-center text-muted-foreground px-3 py-2">
+                        Video subido · listo para publicar en TikTok
+                      </p>
+                    </div>
+                  ) : (
+                    <SocialPostPreview
+                      network={RED_PRINCIPAL}
+                      authorName="Influencer"
+                      authorInitials="CL"
+                      content={postText}
+                      imageUrl={uploadedFiles[0]?.preview ?? null}
+                      charLimit={3000}
+                    />
+                  )}
                 </div>
               </div>
             </motion.div>

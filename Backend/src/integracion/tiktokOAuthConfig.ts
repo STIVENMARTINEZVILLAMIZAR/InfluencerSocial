@@ -10,6 +10,15 @@ export const TIKTOK_API_BASE = process.env.TIKTOK_API_BASE?.trim() || 'https://o
 export const TIKTOK_AUTH_URL =
   process.env.TIKTOK_AUTH_URL?.trim() || 'https://www.tiktok.com/v2/auth/authorize/';
 
+/**
+ * URI de retorno configurada en el servidor (TIKTOK_REDIRECT_URI en .secret.local).
+ * Tiene prioridad sobre la que envíe el cliente, para que coincida con la registrada
+ * en TikTok for Developers (panel → Redirect URL).
+ */
+export function getTikTokRedirectUri(): string {
+  return process.env.TIKTOK_REDIRECT_URI?.trim() ?? '';
+}
+
 const SCOPES = ['user.info.basic', 'user.info.profile', 'video.publish'];
 
 export function getTikTokOAuthScopes(): string {

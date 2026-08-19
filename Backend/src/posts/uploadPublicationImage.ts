@@ -9,9 +9,11 @@ interface UploadRequest {
   base64: string;
 }
 
-const MAX_BYTES = 8 * 1024 * 1024;
+const MAX_BYTES = 200 * 1024 * 1024;
 
-export const uploadPublicationImage = onCall({ region: 'us-central1' }, async (request) => {
+export const uploadPublicationImage = onCall(
+  { region: 'us-central1', timeoutSeconds: 300, memory: '1GiB' },
+  async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'Debes iniciar sesión');
   }
@@ -32,7 +34,7 @@ export const uploadPublicationImage = onCall({ region: 'us-central1' }, async (r
     throw new HttpsError('invalid-argument', 'Archivo vacío');
   }
   if (buffer.length > MAX_BYTES) {
-    throw new HttpsError('invalid-argument', 'Archivo demasiado grande (máx 8MB)');
+    throw new HttpsError('invalid-argument', 'Archivo demasiado grande (máx 200MB)');
   }
 
   const safeName = String(fileName).replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120);

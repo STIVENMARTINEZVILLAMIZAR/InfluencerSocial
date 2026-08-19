@@ -5,6 +5,7 @@ import {
   getTikTokClientKey,
   getTikTokClientSecret,
   getTikTokOAuthScopes,
+  getTikTokRedirectUri,
   TIKTOK_AUTH_URL,
 } from './tiktokOAuthConfig';
 
@@ -26,7 +27,8 @@ export const startTikTokOAuth = onCall({ region: 'us-central1' }, async (request
   }
 
   const { redirectUri } = request.data as { redirectUri?: string };
-  const redirect = normalizeRedirectUri(redirectUri ?? '');
+  const serverRedirect = getTikTokRedirectUri();
+  const redirect = normalizeRedirectUri(serverRedirect || (redirectUri ?? ''));
   if (!redirect || !/^https?:\/\//i.test(redirect)) {
     throw new HttpsError('invalid-argument', 'redirectUri inválida');
   }

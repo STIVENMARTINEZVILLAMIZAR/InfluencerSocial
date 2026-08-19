@@ -1,5 +1,6 @@
 import type { ResultadoRed } from '../types';
 import { withRetry } from './retry';
+import * as logger from 'firebase-functions/logger';
 import { TIKTOK_API_BASE } from '../integracion/tiktokOAuthConfig';
 import { refreshTikTokAccessToken } from '../integracion/tiktokOAuthApi';
 
@@ -12,8 +13,23 @@ export interface TikTokTokens {
 }
 
 const CHUNK_SIZE = 10 * 1024 * 1024;
+const MIN_CHUNK_SIZE = 5 * 1024 * 1024;
 const MAX_BUFFER_BYTES = 200 * 1024 * 1024;
 const MAX_ATTEMPTS_STATUS = 60;
+
+/**
+ * Plan de chunks según la guía de TikTok (Media Transfer):
+ * - Videos < 5 MB: se suben enteros (chunk_size = tamaño total del video).
+ * - total_chunk_count = video_size / chunk_size, redondeado hacia abajo.
+ * - El último chunk absorbe los bytes sobrantes (puede superar chunk_size).
+ */
+function buildChunkPlan(videoSize: number): { chunkSize: number; totalChunks: number } {
+  if (videoSize < MIN_CHUNK_SIZE) {
+    return { chunkSize: videoSize, totalChunks: 1 };
+  }
+  const chunkSize = Math.min(CHUNK_SIZE, videoSize);
+  return { chunkSize, totalChunks: Math.max(1, Math.floor(videoSize / chunkSize)) };
+}
 
 function contentTypeFor(url: string): string {
   if (/\.mov$/i.test(url)) return 'video/quicktime';
@@ -23,7 +39,9 @@ function contentTypeFor(url: string): string {
 }
 
 function isVideoUrl(url: string): boolean {
-  return /\.(mp4|mov|webm|avi)$/i.test(url);
+  // URLs con extensión conocida, o cualquier URL https (p. ej. video IA sin extensión).
+  if (/\.(mp4|mov|webm|avi)$/i.test(url)) return true;
+  return /^https?:\/\//i.test(url);
 }
 
 function parseTikTokError(status: number, text: string, ctx: string): Error {
@@ -66,11 +84,12 @@ async function initVideoPublish(
   accessToken: string,
   title: string,
   videoSize: number,
+  chunkPlan: { chunkSize: number; totalChunks: number },
   privacyLevel: string
 ): Promise<{ publishId: string; uploadUrl: string }> {
   const body = {
     post_info: {
-      title: title.slice(0, 2200),
+      title: title.trim().slice(0, 2200) || 'Video publicado desde InfluencerSocial',
       privacy_level: privacyLevel,
       disable_duet: false,
       disable_comment: false,
@@ -79,8 +98,8 @@ async function initVideoPublish(
     source_info: {
       source: 'FILE_UPLOAD',
       video_size: videoSize,
-      chunk_size: CHUNK_SIZE,
-      total_chunk_count: Math.max(1, Math.ceil(videoSize / CHUNK_SIZE)),
+      chunk_size: chunkPlan.chunkSize,
+      total_chunk_count: chunkPlan.totalChunks,
     },
   };
 
@@ -116,14 +135,16 @@ async function initVideoPublish(
 async function uploadVideo(
   uploadUrl: string,
   buffer: Buffer,
-  contentType: string
+  contentType: string,
+  chunkSize: number,
+  totalChunks: number
 ): Promise<void> {
   const total = buffer.length;
-  const chunks = Math.max(1, Math.ceil(total / CHUNK_SIZE));
+  const lastIndex = totalChunks - 1;
 
-  for (let i = 0; i < chunks; i++) {
-    const start = i * CHUNK_SIZE;
-    const end = Math.min(start + CHUNK_SIZE - 1, total - 1);
+  for (let i = 0; i < totalChunks; i++) {
+    const start = i * chunkSize;
+    const end = i === lastIndex ? total - 1 : start + chunkSize - 1;
     const data = buffer.subarray(start, end + 1);
     const chunk = new Uint8Array(data.length);
     chunk.set(data);
@@ -185,7 +206,35 @@ async function waitPublishComplete(
   throw new Error('TikTok tardó demasiado en procesar el video.');
 }
 
-const PRIVACY_PREFERENCE = ['PUBLIC_TO_EVERYONE', 'PRIVATE_TO_FOLLOWERS', 'SELF_ONLY'];
+/** Valores válidos del enum `privacy_level` (en orden de preferencia). */
+const PRIVACY_PREFERENCE = ['PUBLIC_TO_EVERYONE', 'MUTUAL_FOLLOW_FRIENDS', 'SELF_ONLY'];
+
+/** Cache en memoria de las opciones de privacidad por token (TTL 5 min) para no quemar cuota. */
+const creatorInfoCache = new Map<string, { options: string[]; expiresAt: number }>();
+const CREATOR_INFO_TTL_MS = 5 * 60_000;
+
+/** Consulta las opciones de privacidad permitidas para el creador (requerido antes de publicar). */
+async function queryCreatorPrivacyOptions(accessToken: string): Promise<string[]> {
+  const cached = creatorInfoCache.get(accessToken);
+  if (cached && cached.expiresAt > Date.now()) return cached.options;
+
+  const res = await fetch(`${TIKTOK_API_BASE}/post/publish/creator_info/query/`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json; charset=UTF-8',
+    },
+    body: '{}',
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    throw parseTikTokError(res.status, text, 'creator_info');
+  }
+  const parsed = JSON.parse(text) as { data?: { privacy_level_options?: string[] } };
+  const options = parsed.data?.privacy_level_options ?? [];
+  creatorInfoCache.set(accessToken, { options, expiresAt: Date.now() + CREATOR_INFO_TTL_MS });
+  return options;
+}
 
 /**
  * Publica un video en TikTok vía Content Posting API (Direct Post).
@@ -234,7 +283,8 @@ export async function publishToTikTok(
 
   const accessToken = current.accessToken!;
 
-  return withRetry(async () => {
+  return publishToTikTokWithRateLimitRecovery(() =>
+    withRetry(async () => {
     const videoRes = await fetch(videoUrl, { redirect: 'follow' });
     if (!videoRes.ok) {
       throw new Error(`TikTok no pudo descargar el video desde ${videoUrl} (${videoRes.status})`);
@@ -247,17 +297,46 @@ export async function publishToTikTok(
       throw new Error('TikTok: el video supera el límite de 200 MB para publicar por la API');
     }
 
+    const downloadContentType = videoRes.headers.get('content-type')?.split(';')[0] ?? '';
+    const contentType = downloadContentType.startsWith('video/')
+      ? downloadContentType
+      : contentTypeFor(videoUrl);
+
     let initResult: { publishId: string; uploadUrl: string } | null = null;
     let initError: Error | null = null;
-    for (const privacy of PRIVACY_PREFERENCE) {
+    const chunkPlan = buildChunkPlan(buffer.length);
+
+    let allowedPrivacies: string[] = [];
+    try {
+      allowedPrivacies = await queryCreatorPrivacyOptions(accessToken);
+    } catch {
+      // Si creator_info falla, se usa la preferencia por defecto.
+    }
+    const candidates = allowedPrivacies.length
+      ? PRIVACY_PREFERENCE.filter((p) => allowedPrivacies.includes(p))
+      : ['PUBLIC_TO_EVERYONE', 'SELF_ONLY'];
+    const privacyCandidates = candidates.length ? candidates : ['SELF_ONLY'];
+
+    for (const privacy of privacyCandidates) {
       try {
-        initResult = await initVideoPublish(accessToken, contenido, buffer.length, privacy);
+        initResult = await initVideoPublish(
+          accessToken,
+          contenido,
+          buffer.length,
+          chunkPlan,
+          privacy
+        );
         break;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        const blockedByAudit = /unaudited_client_can_only_post_to_private/i.test(msg);
         initError = err instanceof Error ? err : new Error(msg);
-        if (blockedByAudit && privacy !== PRIVACY_PREFERENCE[PRIVACY_PREFERENCE.length - 1]) {
+        if (/rate_limit_exceeded/i.test(msg)) {
+          throw new Error(
+            'TikTok excedió el límite de solicitudes por minuto (6 por token). Se reintentará en un momento; si persiste, espera 1 minuto y publica de nuevo.'
+          );
+        }
+        const blockedByAudit = /unaudited_client_can_only_post_to_private/i.test(msg);
+        if (blockedByAudit && privacy !== privacyCandidates[privacyCandidates.length - 1]) {
           continue;
         }
         throw err;
@@ -267,9 +346,34 @@ export async function publishToTikTok(
       throw initError ?? new Error('TikTok no pudo inicializar la publicación');
     }
 
-    await uploadVideo(initResult.uploadUrl, buffer, contentTypeFor(videoUrl));
+    await uploadVideo(
+      initResult.uploadUrl,
+      buffer,
+      contentType,
+      chunkPlan.chunkSize,
+      chunkPlan.totalChunks
+    );
 
     const videoId = await waitPublishComplete(accessToken, initResult.publishId);
     return { success: true, postId: videoId };
-  }, 'tiktok');
+  }, 'tiktok', 3, (err) => !/rate_limit_exceeded/i.test(err instanceof Error ? err.message : String(err)))
+  );
+}
+
+/**
+ * Envuelve la publicación: si TikTok responde rate_limit_exceeded,
+ * espera 60 s (la cuota se renueva cada minuto) y reintenta una vez.
+ */
+async function publishToTikTokWithRateLimitRecovery(
+  fn: () => Promise<ResultadoRed>
+): Promise<ResultadoRed> {
+  try {
+    return await fn();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!/rate_limit_exceeded/i.test(msg)) throw err;
+    logger.warn('Rate limit de TikTok: esperando 60 s antes de reintentar');
+    await new Promise((r) => setTimeout(r, 60_000));
+    return fn();
+  }
 }

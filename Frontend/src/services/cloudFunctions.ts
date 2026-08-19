@@ -52,6 +52,24 @@ export async function generateContent(
   return res.data;
 }
 
+export type GenerateVideoResponse = {
+  videoUrl: string;
+  model?: string;
+  nota?: string;
+};
+
+export async function generateVideo(
+  prompt: string,
+  imageUrl?: string | null
+): Promise<GenerateVideoResponse> {
+  const fn = httpsCallable<{ prompt: string; imageUrl?: string }, GenerateVideoResponse>(
+    functions,
+    'generateVideo'
+  );
+  const res = await fn({ prompt, imageUrl: imageUrl ?? undefined });
+  return res.data;
+}
+
 export async function schedulePost(postId: string, fechaHora: string, redesDestino?: string[]) {
   const fn = httpsCallable<
     { postId: string; fechaHora: string; redesDestino?: string[] },
